@@ -124,7 +124,7 @@ with st.expander(f"View {plural(summary.paused, 'Paused Pledge')}"):
     st.dataframe(df[df['is_paused']][['pledge_id', 'donor_name', 'status']], width="stretch")
 
 with st.expander(f"View {plural(summary.unparseable, 'Unparseable Pledge')}"):
-    st.markdown("These rows contain critical formatting errors (negative amounts, missing dates, or unknown frequencies) and cannot be calculated.")
+    st.markdown("These rows contain critical formatting errors (negative amounts, missing dates, unknown frequencies, or unknown currencies) and cannot be calculated.")
     st.dataframe(df[df['is_unparseable']][['pledge_id', 'donor_name', 'amount', 'currency', 'frequency', 'start_date']], width="stretch")
 
 with st.expander(

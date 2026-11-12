@@ -131,13 +131,17 @@ def normalize_currency(val) -> str | None:
 
 
 def exchange_rate(currency) -> float:
-    """USD rate for a currency code. Unknown currencies count as 0."""
-    return EXCHANGE_RATES.get(normalize_currency(currency), 0)
+    """USD rate for a currency code, or NaN if the currency is unknown or blank."""
+    return EXCHANGE_RATES.get(normalize_currency(currency), float("nan"))
 
 
 def monthly_usd(amount: float, currency, frequency) -> float:
-    """Monthly USD equivalent of one pledge payment."""
-    multiplier = FREQUENCY_MULTIPLIERS.get(normalize_frequency(frequency), 0)
+    """Monthly USD equivalent of one pledge payment.
+
+    NaN when the amount, currency or frequency cannot be used. An unknown
+    currency must never turn into a $0 pledge that still counts as included.
+    """
+    multiplier = FREQUENCY_MULTIPLIERS.get(normalize_frequency(frequency), float("nan"))
     return amount * exchange_rate(currency) * multiplier
 
 
@@ -166,6 +170,7 @@ def read_workbook(path) -> tuple[pd.DataFrame, pd.DataFrame]:
 def clean_pledges(raw: pd.DataFrame) -> pd.DataFrame:
     pledges = raw.copy()
     pledges["frequency"] = pledges["frequency"].map(normalize_frequency)
+    pledges["usd_rate"] = pledges["currency"].map(exchange_rate).astype(float)
     pledges["clean_amount"] = pledges["amount"].map(parse_amount).astype(float)
     pledges["clean_start_date"] = pd.to_datetime(pledges["start_date"].map(parse_date))
     pledges["clean_end_date"] = pd.to_datetime(pledges["end_date"].map(parse_date))
@@ -215,10 +220,12 @@ def reconcile(
 
     # 4. Strict waterfall: a pledge is only flagged for a condition if no
     #    earlier (more severe) condition already excluded it.
+    df["is_unknown_currency"] = df["usd_rate"].isna()
     df["is_unparseable"] = (
         df["clean_amount"].isna()
         | df["clean_start_date"].isna()
         | ~df["frequency"].isin(list(FREQUENCY_MULTIPLIERS))
+        | df["is_unknown_currency"]
     )
     df["is_past_end"] = (
         ~df["is_unparseable"]
@@ -339,7 +346,8 @@ def methodology_markdown() -> str:
         [
             f"- **Reference date:** {reference}. All figures are as of this date, in USD.",
             f"- **Monthly goal:** ${GOAL_MONTHLY_USD:,.0f}.",
-            f"- **Exchange rates to USD:** {rates}.",
+            f"- **Exchange rates to USD:** {rates}. "
+            "Any other or missing currency makes the pledge unparseable.",
             f"- **Frequency logic:** {frequency_logic}.",
             f"- **Lapse decay (days since last valid gift):** {lapse}. "
             "A pledge with no valid gift is lapsed.",
