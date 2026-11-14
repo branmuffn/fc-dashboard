@@ -61,7 +61,7 @@ WATERFALL_ORDER = (STATUS_UNPARSEABLE, STATUS_PAST_END, STATUS_PAUSED, STATUS_LA
 # ==========================================
 APP_DIR = Path(__file__).resolve().parent
 DATA_DIR = APP_DIR / "data"
-ORIGINAL_DATA_PATH = DATA_DIR / "Frontier Commons Fellowship FA26 — Build Lane Challenge Data.xlsx"
+ORIGINAL_DATA_PATH = DATA_DIR / "pledge_ledger.xlsx"  # Option C pledges, gifts and rules only
 
 
 # ==========================================
